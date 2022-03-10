@@ -2,13 +2,14 @@ import os
 
 import discord
 
+from constants import DEBUG_GUILDS
 from utils.config import TokenConfig
 
 
 class Client(discord.Bot):
     def __init__(self):
         intents = discord.Intents.all()
-        super().__init__(debug_guilds=[821749224739831828, ], intents=intents)
+        super().__init__(debug_guilds=DEBUG_GUILDS, intents=intents)
 
     async def on_ready(self):
         print("-" * 50)
