@@ -2,9 +2,11 @@ import discord
 from discord.commands import slash_command
 from discord.ext import commands
 
+from constants import VK_URL_PREFIX, FFMPEG_OPTIONS
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
+from vk_parsing.main import get_request
 
 
 class MusicBot(commands.Cog):
@@ -29,21 +31,31 @@ class MusicBot(commands.Cog):
 
         await ctx.respond(embed=embed, ephemeral=True)
 
-    @slash_command(name="play", description="Play music from link")
+    @slash_command(name="play", description="Play tracks from VK playlist")
     async def play_command(self, ctx,
-                           request: discord.Option(str, "Enter your request", required=True)):
+                           request: discord.Option(str, "Playlist link", required=True)):
+        if VK_URL_PREFIX not in request:
+            embed = Embeds.music_embed(description="Incorrect link")
+            return await ctx.respond(embed=embed)
 
         if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
             voice = await join_channel(ctx)
         else:
             voice = ctx.voice_client
-        # TODO >>
-        # link = ...
-        # source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(link))
-        # voice.play(source=source, after=lambda e: ... if e else None)
 
-        embed = Embeds.music_embed(title=f"Now playing in {voice.channel}"
-                                   )
+        await ctx.defer()
+        parsed_items = await get_request(request)
+        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(parsed_items[0]["url"], **FFMPEG_OPTIONS))
+        # source = await discord.FFmpegOpusAudio.from_probe(
+        #     parsed_items[0]["url"], **FFMPEG_OPTIONS
+        # )
+        voice.play(
+            source=source
+        )
+        # voice.play(source=source, after=lambda e: ...)
+
+        embed = Embeds.music_embed(title=f"Now playing in {voice.channel}",
+                                   description=f"{parsed_items[0]['name']}")
 
         await ctx.respond(embed=embed)
 
