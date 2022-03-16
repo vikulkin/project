@@ -28,9 +28,9 @@ def optimize_link(link: str) -> dict:
 
 
 def get_thumb(track: dict):
-    if "album" in track or "thumb" in track["album"]:
-        return track["album"]["thumb"]["photo_270"]
-    return "https://i.pinimg.com/564x/63/43/d6/6343d6f55d4b22cdeea0de8f9cb6ebab.jpg"
+    if "album" not in track or "thumb" not in track["album"]:
+        return "https://i.pinimg.com/564x/63/43/d6/6343d6f55d4b22cdeea0de8f9cb6ebab.jpg"
+    return track["album"]["thumb"]["photo_270"]
 
 
 def parse_track_info(item: dict):
