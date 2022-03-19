@@ -2,6 +2,7 @@ import discord
 from discord.commands import slash_command
 from discord.ext import commands
 
+from bot_storage.storage import BotStorage, Queue
 from constants import VK_URL_PREFIX, FFMPEG_OPTIONS
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException
 from utils.commands_utils import join_channel
@@ -10,10 +11,11 @@ from vk_parsing.main import get_request
 
 
 class MusicBot(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, client):
+        self.client = client
+        self.storage = BotStorage(self.client)
 
-    @slash_command(name="join", description="Joins your voice channel")
+    @slash_command(name="join", description="Bot join your voice channel")
     async def join_command(self, ctx):
         voice = await join_channel(ctx)
 
@@ -31,6 +33,9 @@ class MusicBot(commands.Cog):
 
         await ctx.respond(embed=embed, ephemeral=True)
 
+    def _play_next(self, errors, ctx):
+        print("next!")
+
     @slash_command(name="play", description="Play tracks from VK playlist")
     async def play_command(self, ctx,
                            request: discord.Option(str, "Playlist link", required=True)):
@@ -45,14 +50,15 @@ class MusicBot(commands.Cog):
 
         await ctx.defer()
         parsed_items = await get_request(request)
-        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(parsed_items[0]["url"], **FFMPEG_OPTIONS))
-        # source = await discord.FFmpegOpusAudio.from_probe(
-        #     parsed_items[0]["url"], **FFMPEG_OPTIONS
-        # )
-        voice.play(
-            source=source
+        storage_queue = Queue(ctx.guild.id)
+        self.storage.add_queue(storage_queue, ctx.guild.id)
+        source = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(parsed_items[0]["url"], **FFMPEG_OPTIONS)
         )
-        # voice.play(source=source, after=lambda e: ...)
+
+        voice.play(
+            source=source, after=lambda e: self._play_next(e, ctx)
+        )
 
         embed = Embeds.music_embed(title=f"Now playing in {voice.channel}",
                                    description=f"{parsed_items[0]['name']}")
