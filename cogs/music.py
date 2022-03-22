@@ -15,6 +15,15 @@ class MusicBot(commands.Cog):
         self.client = client
         self.storage = BotStorage(self.client)
 
+    @slash_command(name="player", description="Get player for current playlist")
+    async def playlist_command(self, ctx):
+        embed = self.storage.get_player_embed(ctx)
+        if embed is None:
+            # TODO >>
+            await ctx.respond("Error")
+            return
+        await ctx.respond(embed=embed)
+
     @slash_command(name="join", description="Bot join your voice channel")
     async def join_command(self, ctx):
         voice = await join_channel(ctx)
@@ -35,11 +44,12 @@ class MusicBot(commands.Cog):
 
     def _play_next(self, errors, ctx):
         print("next!")
+        # TODO >>
 
     @slash_command(name="play", description="Play tracks from VK playlist")
     async def play_command(self, ctx,
-                           request: discord.Option(str, "Playlist link", required=True)):
-        if VK_URL_PREFIX not in request:
+                           link: discord.Option(str, "Playlist link", required=True)):
+        if VK_URL_PREFIX not in link:
             embed = Embeds.music_embed(description="Incorrect link")
             return await ctx.respond(embed=embed)
 
@@ -49,11 +59,15 @@ class MusicBot(commands.Cog):
             voice = ctx.voice_client
 
         await ctx.defer()
-        parsed_items = await get_request(request)
+        parsed_items = await get_request(link)
+
         storage_queue = Queue(ctx.guild.id)
+        storage_queue.add_tracks(parsed_items)
+
         self.storage.add_queue(storage_queue, ctx.guild.id)
+
         source = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(parsed_items[0]["url"], **FFMPEG_OPTIONS)
+            discord.FFmpegPCMAudio(parsed_items[1]["url"], **FFMPEG_OPTIONS)
         )
 
         voice.play(
@@ -72,6 +86,7 @@ class MusicBot(commands.Cog):
             raise UserVoiceException
 
     @leave_command.before_invoke
+    @playlist_command.before_invoke
     async def ensure_self_voice(self, ctx):
         if ctx.voice_client is None:
             raise SelfVoiceException

@@ -1,4 +1,5 @@
 from bot_storage.utils.enums import RepeatModes
+from utils.embed_utils import Embeds
 
 
 class Queue:
@@ -76,3 +77,39 @@ class BotStorage:
 
     def get_queue(self, guild_id):
         return self.queues.get(guild_id)
+
+    def get_player_embed(self, ctx):
+
+        queue: Queue = self.get_queue(ctx.guild_id)
+        if queue is None:
+            # TODO >> выброс исключения + его обработка в error_handler.py
+            return
+
+        current_index = queue.current_index
+
+        embed = Embeds.music_embed(
+            title=f"Player in {ctx.voice_client.channel.name}",
+            description=f"Tracks in queue: {len(queue)}\n"
+        )
+
+        if current_index - 1 >= 0:
+            embed.add_field(
+                name="Previous track",
+                value=f"**{current_index}. {queue.tracks[current_index - 1]['name']}**\n",
+                inline=False
+            )
+        embed.add_field(
+            name="Now playing",
+            value=f"**{current_index + 1}. {queue.tracks[current_index]['name']}**\n",
+            inline=False
+        )
+
+        if current_index + 1 < len(queue):
+            embed.add_field(
+                name="Next track",
+                value=f"**{current_index + 2}. {queue.tracks[current_index + 1]['name']}**\n",
+                inline=False
+            )
+        embed.set_thumbnail(url=queue.tracks[current_index]["thumbnail"])
+
+        return embed

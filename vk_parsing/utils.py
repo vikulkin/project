@@ -43,6 +43,6 @@ def parse_track_info(item: dict):
         "url": item["url"],
         "name": name,
         "duration": item["duration"],
-        "thumb": image,
+        "thumbnail": image,
         "id": track_id
     }
