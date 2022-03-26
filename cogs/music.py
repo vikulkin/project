@@ -3,7 +3,7 @@ from discord.commands import slash_command
 from discord.ext import commands
 
 from bot_storage.storage import BotStorage, Queue
-from constants import VK_URL_PREFIX, FFMPEG_OPTIONS
+from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
@@ -31,8 +31,7 @@ class MusicBot(commands.Cog):
 
     @slash_command(name="leave", description="Make bot leave voice channel")
     async def leave_command(self, ctx):
-
-        voice: discord.VoiceClient = ctx.voice_client
+        voice = ctx.voice_client
 
         if voice.is_connected():
             await voice.disconnect()
@@ -92,6 +91,42 @@ class MusicBot(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+    @slash_command(name="pause", description="Pause current queue")
+    async def pause_command(self, ctx):
+        voice = ctx.voice_client
+        voice.pause()
+
+        await ctx.respond(embed=Embeds.music_embed(description="Playing paused"))
+
+    @slash_command(name="volume", description="Edit music volume")
+    async def volume_command(self, ctx,
+                             level: discord.Option(int,
+                                                   description="Volume level (1 - 100)",
+                                                   required=True,
+                                                   min_value=1,
+                                                   max_value=100)):
+
+        ctx.voice_client.source.volume = level / 100
+
+        embed = Embeds.music_embed(title="Volume level changed",
+                                   description=f"Volume level changed to {level/100} **({level}%)**")
+
+        await ctx.respond(embed=embed)
+
+    @slash_command(name="repeat", description="Switch repeat mode (None -> One -> All -> None -> ...)")
+    async def repeat_command(self, ctx):
+        queue = self.storage.get_queue(ctx.guild.id)
+        queue.switch_repeat_mode()
+
+        repeat_mode = queue.repeat_mode.value
+
+        rm_str = REPEAT_MODES_STR.get(repeat_mode)
+
+        embed = Embeds.music_embed(title="Repeat mode switched",
+                                   description=f"Repeat mode switched to **{rm_str}**")
+
+        await ctx.respond(embed=embed)
+
     @slash_command(name="skip", description="Skip current track")
     async def skip_command(self, ctx):
         current_track = self.storage.get_queue(ctx.guild.id).current_track
@@ -110,6 +145,7 @@ class MusicBot(commands.Cog):
     @leave_command.before_invoke
     @playlist_command.before_invoke
     @skip_command.before_invoke
+    @pause_command.before_invoke
     async def ensure_self_voice(self, ctx):
         if ctx.voice_client is None:
             raise SelfVoiceException
