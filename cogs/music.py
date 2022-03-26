@@ -19,8 +19,6 @@ class MusicBot(commands.Cog):
     async def playlist_command(self, ctx):
         embed = self.storage.get_player_embed(ctx)
         if embed is None:
-            # TODO >>
-            await ctx.respond("Error")
             return
         await ctx.respond(embed=embed)
 
@@ -43,8 +41,23 @@ class MusicBot(commands.Cog):
         await ctx.respond(embed=embed, ephemeral=True)
 
     def _play_next(self, errors, ctx):
-        print("next!")
-        # TODO >>
+        queue: Queue = self.storage.get_queue(ctx.guild.id)
+
+        voice = ctx.voice_client
+        if voice is None:
+            return
+
+        next_track = queue.get_next_track(reverse=False)
+        if next_track is None:
+            return
+
+        source = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(next_track["url"],
+                                   **FFMPEG_OPTIONS)
+        )
+        voice.play(
+            source=source, after=lambda e: self._play_next(e, ctx)
+        )
 
     @slash_command(name="play", description="Play tracks from VK playlist")
     async def play_command(self, ctx,
@@ -67,7 +80,7 @@ class MusicBot(commands.Cog):
         self.storage.add_queue(storage_queue, ctx.guild.id)
 
         source = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(parsed_items[1]["url"], **FFMPEG_OPTIONS)
+            discord.FFmpegPCMAudio(parsed_items[0]["url"], **FFMPEG_OPTIONS)
         )
 
         voice.play(
@@ -79,6 +92,15 @@ class MusicBot(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+    @slash_command(name="skip", description="Skip current track")
+    async def skip_command(self, ctx):
+        current_track = self.storage.get_queue(ctx.guild.id).current_track
+        embed = Embeds.music_embed(title="Track skipped", description=f"{current_track['name']}")
+        await ctx.respond(embed=embed)
+
+        voice = ctx.voice_client
+        voice.stop()
+
     @play_command.before_invoke
     @join_command.before_invoke
     async def ensure_author_voice(self, ctx):
@@ -87,6 +109,7 @@ class MusicBot(commands.Cog):
 
     @leave_command.before_invoke
     @playlist_command.before_invoke
+    @skip_command.before_invoke
     async def ensure_self_voice(self, ctx):
         if ctx.voice_client is None:
             raise SelfVoiceException

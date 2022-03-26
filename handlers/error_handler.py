@@ -4,7 +4,7 @@ import traceback
 from discord import ApplicationContext, DiscordException
 
 from __main__ import client
-from exceptions.custrom_exceptions import SelfVoiceException, UserVoiceException
+from exceptions.custrom_exceptions import SelfVoiceException, UserVoiceException, EmptyQueueException
 from utils.embed_utils import Embeds
 
 
@@ -17,6 +17,10 @@ async def command_error_handler(ctx: ApplicationContext, error: DiscordException
 
     elif isinstance(error, UserVoiceException):
         embed = Embeds.error_embed(description="You are not connected to the voice channel")
+        await ctx.respond(embed=embed, ephemeral=True)
+
+    elif isinstance(error, EmptyQueueException):
+        embed = Embeds.error_embed(description="Queue is empty. Nothing is playing")
         await ctx.respond(embed=embed, ephemeral=True)
 
     else:

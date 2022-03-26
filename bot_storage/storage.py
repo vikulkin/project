@@ -1,4 +1,5 @@
 from bot_storage.utils.enums import RepeatModes
+from exceptions.custrom_exceptions import EmptyQueueException
 from utils.embed_utils import Embeds
 
 
@@ -27,6 +28,10 @@ class Queue:
     def repeat_mode(self):
         return self._repeat_mode
 
+    @property
+    def current_track(self):
+        return self._tracks[self.current_index]
+
     def add_tracks(self, tracks):
         if isinstance(tracks, dict):
             self._tracks.append(tracks)
@@ -47,9 +52,16 @@ class Queue:
             if self.repeat_mode == RepeatModes.NONE:
                 self._tracks.clear()
                 return
-
-            if self.repeat_mode == RepeatModes.ALL:
+            elif self.repeat_mode == RepeatModes.ALL:
                 self.current_index = 0
+
+        elif self.current_index < 0:
+            if self.repeat_mode == RepeatModes.ALL:
+                self.current_index = len(self) - 1
+            elif self.repeat_mode == RepeatModes.NONE:
+                self._tracks.clear()
+                return
+
         return self._tracks[self.current_index]
 
     def switch_repeat_mode(self):
@@ -82,8 +94,7 @@ class BotStorage:
 
         queue: Queue = self.get_queue(ctx.guild_id)
         if queue is None:
-            # TODO >> выброс исключения + его обработка в error_handler.py
-            return
+            raise EmptyQueueException
 
         current_index = queue.current_index
 

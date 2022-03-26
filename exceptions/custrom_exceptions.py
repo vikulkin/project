@@ -7,3 +7,7 @@ class SelfVoiceException(DiscordException):
 
 class UserVoiceException(DiscordException):
     pass
+
+
+class EmptyQueueException(DiscordException):
+    pass
