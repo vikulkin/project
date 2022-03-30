@@ -7,7 +7,7 @@ from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
-from vk_parsing.main import get_request
+from vk_parsing.main import get_request, find_tracks_by_name
 
 
 class MusicBot(commands.Cog):
@@ -73,6 +73,8 @@ class MusicBot(commands.Cog):
         await ctx.defer()
         parsed_items = await get_request(link)
 
+        # TODO >> вынести в отдельную функцию
+
         storage_queue = Queue(ctx.guild.id)
         storage_queue.add_tracks(parsed_items)
 
@@ -91,12 +93,69 @@ class MusicBot(commands.Cog):
 
         await ctx.respond(embed=embed)
 
+    @slash_command(name="search", description="Find track by name")
+    async def search_command(self, ctx,
+                             query: discord.Option(str, "Search query", required=True)):
+
+        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+            voice = await join_channel(ctx)
+        else:
+            voice = ctx.voice_client
+
+        await ctx.defer()
+        try:
+            tracks = await find_tracks_by_name(query)
+        except:  # TODO выяснить что там за ошибки могут быть
+            embed = Embeds.error_embed(description=f"Error occurred while parsing your request: {query}")
+            return await ctx.respond(embed=embed)
+
+        if tracks is None:
+            embed = Embeds.error_embed(title="Tracks can't be found",
+                                       description=f"Can't find tracks with request: **{query}**")
+            return await ctx.reposnd(embed=embed)
+        tracks_str = ""
+        for i, track in enumerate(tracks):
+            tracks_str += f"**{i}. {track['name']}**\n"
+
+        # TODO delete VVV this VVV
+        tracks_str += "Playing first one (choose is coming..)"
+
+        embed = Embeds.music_embed(title=f"Query: {query}",
+                                   description=tracks_str)
+        await ctx.respond(embed=embed)
+
+        # TODO >> вынести в отдельную функцию
+        storage_queue = Queue(ctx.guild.id)
+        storage_queue.add_tracks(tracks[0])
+
+        self.storage.add_queue(storage_queue, ctx.guild.id)
+
+        source = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(tracks[0]["url"], **FFMPEG_OPTIONS)
+        )
+
+        voice.play(
+            source=source, after=lambda e: self._play_next(e, ctx)
+        )
+
+        embed = Embeds.music_embed(title=f"Now playing in {voice.channel}",
+                                   description=f"{tracks[0]['name']}")
+
+        await ctx.respond(embed=embed)
+
     @slash_command(name="pause", description="Pause current queue")
     async def pause_command(self, ctx):
         voice = ctx.voice_client
         voice.pause()
 
         await ctx.respond(embed=Embeds.music_embed(description="Playing paused"))
+
+    @slash_command(name="resume", description="Resume playing")
+    async def resume_command(self, ctx):
+        voice = ctx.voice_client
+        voice.resume()
+
+        await ctx.respond(embed=Embeds.music_embed(description="Continuing playing"))
 
     @slash_command(name="volume", description="Edit music volume")
     async def volume_command(self, ctx,
@@ -138,6 +197,7 @@ class MusicBot(commands.Cog):
 
     @play_command.before_invoke
     @join_command.before_invoke
+    @search_command.before_invoke
     async def ensure_author_voice(self, ctx):
         if not ctx.author.voice:
             raise UserVoiceException
