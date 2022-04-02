@@ -1,3 +1,5 @@
+import discord
+
 from bot_storage.utils.enums import RepeatModes
 from exceptions.custrom_exceptions import EmptyQueueException
 from utils.embed_utils import Embeds
@@ -98,9 +100,12 @@ class BotStorage:
 
         current_index = queue.current_index
 
+        volume = ctx.voice.source.volume * 100
+
         embed = Embeds.music_embed(
             title=f"Player in {ctx.voice_client.channel.name}",
             description=f"Tracks in queue: {len(queue)}\n"
+                        f"Volume: **{volume}%**\n"
         )
 
         if current_index - 1 >= 0:

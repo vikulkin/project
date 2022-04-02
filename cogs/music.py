@@ -4,7 +4,7 @@ from discord.ext import commands
 
 from bot_storage.storage import BotStorage, Queue
 from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
-from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException
+from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException, IncorrectLinkException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
 from vk_parsing.main import get_request, find_tracks_by_name
@@ -16,7 +16,7 @@ class MusicBot(commands.Cog):
         self.storage = BotStorage(self.client)
 
     @slash_command(name="player", description="Get player for current playlist")
-    async def playlist_command(self, ctx):
+    async def player_command(self, ctx):
         embed = self.storage.get_player_embed(ctx)
         if embed is None:
             return
@@ -61,15 +61,12 @@ class MusicBot(commands.Cog):
     @slash_command(name="play", description="Play tracks from VK playlist")
     async def play_command(self, ctx,
                            link: discord.Option(str, "Playlist link", required=True)):
-        if VK_URL_PREFIX not in link:
-            embed = Embeds.music_embed(description="Incorrect link")
-            return await ctx.respond(embed=embed)
 
-        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
-            voice = await join_channel(ctx)
-        else:
-            voice = ctx.voice_client
-
+        # if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+        #     voice = await join_channel(ctx)
+        # else:
+        #     voice = ctx.voice_client
+        voice = ctx.voice_client
         await ctx.defer()
         parsed_items = await get_request(link)
 
@@ -97,11 +94,11 @@ class MusicBot(commands.Cog):
     async def search_command(self, ctx,
                              query: discord.Option(str, "Search query", required=True)):
 
-        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
-            voice = await join_channel(ctx)
-        else:
-            voice = ctx.voice_client
-
+        # if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+        #     voice = await join_channel(ctx)
+        # else:
+        #     voice = ctx.voice_client
+        voice = ctx.voice_client
         await ctx.defer()
         try:
             tracks = await find_tracks_by_name(query)
@@ -203,12 +200,24 @@ class MusicBot(commands.Cog):
             raise UserVoiceException
 
     @leave_command.before_invoke
-    @playlist_command.before_invoke
+    @player_command.before_invoke
     @skip_command.before_invoke
     @pause_command.before_invoke
     async def ensure_self_voice(self, ctx):
         if ctx.voice_client is None:
             raise SelfVoiceException
+
+    @play_command.before_invoke
+    async def ensure_vk_link(self, ctx):
+        link = ctx.args["link"]
+        if VK_URL_PREFIX not in link:
+            raise IncorrectLinkException
+
+    @play_command.before_invoke
+    @search_command.before_invoke
+    async def ensure_voice_channel(self, ctx):
+        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+            await join_channel(ctx)
 
 
 def setup(bot):

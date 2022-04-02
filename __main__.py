@@ -9,7 +9,7 @@ from utils.config import TokenConfig
 class Client(discord.Bot):
     def __init__(self):
         intents = discord.Intents.all()
-        super().__init__(debug_guilds=DEBUG_GUILDS, intents=intents)
+        super().__init__(debug_guilds=DEBUG_GUILDS, intents=intents, auto_sync_commands=True)
 
     async def on_ready(self):
         print("-" * 50)

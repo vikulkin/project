@@ -4,7 +4,8 @@ import traceback
 from discord import ApplicationContext, DiscordException
 
 from __main__ import client
-from exceptions.custrom_exceptions import SelfVoiceException, UserVoiceException, EmptyQueueException
+from exceptions.custrom_exceptions import SelfVoiceException, UserVoiceException, EmptyQueueException, \
+    IncorrectLinkException
 from utils.embed_utils import Embeds
 
 
@@ -22,6 +23,9 @@ async def command_error_handler(ctx: ApplicationContext, error: DiscordException
     elif isinstance(error, EmptyQueueException):
         embed = Embeds.error_embed(description="Queue is empty. Nothing is playing")
         await ctx.respond(embed=embed, ephemeral=True)
+    elif isinstance(error, IncorrectLinkException):
+        embed = Embeds.music_embed(description="Incorrect link")
+        await ctx.respond(embed=embed)
 
     else:
         print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)

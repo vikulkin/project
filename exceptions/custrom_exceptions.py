@@ -11,3 +11,7 @@ class UserVoiceException(DiscordException):
 
 class EmptyQueueException(DiscordException):
     pass
+
+
+class IncorrectLinkException(DiscordException):
+    pass
