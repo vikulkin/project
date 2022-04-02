@@ -100,7 +100,7 @@ class BotStorage:
 
         current_index = queue.current_index
 
-        volume = ctx.voice.source.volume * 100
+        volume = ctx.voice_client.source.volume * 100
 
         embed = Embeds.music_embed(
             title=f"Player in {ctx.voice_client.channel.name}",
