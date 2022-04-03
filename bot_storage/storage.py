@@ -92,6 +92,10 @@ class BotStorage:
     def get_queue(self, guild_id):
         return self.queues.get(guild_id)
 
+    def delete_queue(self, guild_id):
+        if guild_id in self.queues:
+            del self.queues[guild_id]
+
     def get_player_embed(self, ctx):
 
         queue: Queue = self.get_queue(ctx.guild_id)

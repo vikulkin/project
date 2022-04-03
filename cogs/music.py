@@ -49,7 +49,7 @@ class MusicBot(commands.Cog):
 
         next_track = queue.get_next_track(reverse=False)
         if next_track is None:
-            # TODO сделать удаление очереди из общего хранилища
+            self.storage.delete_queue(ctx.guild.id)
             return
 
         source = discord.PCMVolumeTransformer(
@@ -72,12 +72,13 @@ class MusicBot(commands.Cog):
             source = discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(track_to_play["url"], **FFMPEG_OPTIONS)
             )
+            source.volume = .5
 
             voice = ctx.voice_client
             voice.play(
                 source=source, after=lambda e: self._play_next(e, ctx)
             )
-            await self.player_command.invoke(ctx)
+            await self.player_command(self, ctx)
 
         else:
             self.storage.add_tracks(ctx.guild.id, tracks)
@@ -113,7 +114,7 @@ class MusicBot(commands.Cog):
         if tracks is None:
             embed = Embeds.error_embed(title="Tracks can't be found",
                                        description=f"Can't find tracks with request: **{query}**")
-            return await ctx.reposnd(embed=embed)
+            return await ctx.respond(embed=embed)
         tracks_str = ""
         for i, track in enumerate(tracks):
             tracks_str += f"**{i + 1}. {track['name']}**\n"
@@ -126,7 +127,6 @@ class MusicBot(commands.Cog):
         await ctx.respond(embed=embed)
 
         await self.add_tracks(ctx, tracks[0])
-
 
     @slash_command(name="pause", description="Pause current queue")
     async def pause_command(self, ctx):
