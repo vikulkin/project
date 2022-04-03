@@ -88,7 +88,7 @@ class MusicBot(commands.Cog):
                                            description=f"**{tracks['name']}**")
             await ctx.respond(embed=embed)
 
-    play_group = SlashCommandGroup(name="play", description="Play commands")
+    play_group = SlashCommandGroup("play", "Play commands")
 
     @play_group.command(name="playlist", description="Play tracks from VK playlist")
     async def playlist_command(self, ctx,
@@ -97,26 +97,7 @@ class MusicBot(commands.Cog):
         await ctx.defer()
         parsed_items = await get_request(link)
 
-        # TODO >> вынести в отдельную функцию
-
-        # storage_queue = Queue(ctx.guild.id)
-        # storage_queue.add_tracks(parsed_items)
-        #
-        # self.storage.add_queue(storage_queue, ctx.guild.id)
-        #
-        # source = discord.PCMVolumeTransformer(
-        #     discord.FFmpegPCMAudio(parsed_items[0]["url"], **FFMPEG_OPTIONS)
-        # )
-        #
-        # voice.play(
-        #     source=source, after=lambda e: self._play_next(e, ctx)
-        # )
         await self.add_tracks(ctx, parsed_items)
-
-        # embed = Embeds.music_embed(title=f"Now playing in {voice.channel}",
-        #                            description=f"{parsed_items[0]['name']}")
-        #
-        # await ctx.respond(embed=embed)
 
     @play_group.command(name="search", description="Find track by name")
     async def search_command(self, ctx,
@@ -144,25 +125,8 @@ class MusicBot(commands.Cog):
                                    description=tracks_str)
         await ctx.respond(embed=embed)
 
-        # TODO >> вынести в отдельную функцию
-        # storage_queue = Queue(ctx.guild.id)
-        # storage_queue.add_tracks(tracks[0])
-        #
-        # self.storage.add_queue(storage_queue, ctx.guild.id)
-        #
-        # source = discord.PCMVolumeTransformer(
-        #     discord.FFmpegPCMAudio(tracks[0]["url"], **FFMPEG_OPTIONS)
-        # )
-        #
-        # voice.play(
-        #     source=source, after=lambda e: self._play_next(e, ctx)
-        # )
         await self.add_tracks(ctx, tracks[0])
 
-        # embed = Embeds.music_embed(title=f"Now playing in {voice.channel}",
-        #                            description=f"{tracks[0]['name']}")
-        #
-        # await ctx.respond(embed=embed)
 
     @slash_command(name="pause", description="Pause current queue")
     async def pause_command(self, ctx):
