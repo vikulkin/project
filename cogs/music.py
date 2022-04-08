@@ -107,7 +107,8 @@ class MusicBot(commands.Cog):
         await ctx.defer()
         try:
             tracks = await find_tracks_by_name(query)
-        except:  # TODO выяснить что там за ошибки могут быть
+        except Exception as error:
+            print(f"search command error: {error}")
             embed = Embeds.error_embed(description=f"Error occurred while parsing your request: {query}")
             return await ctx.respond(embed=embed)
 
@@ -132,17 +133,13 @@ class MusicBot(commands.Cog):
             async def callback(self, interaction: discord.Interaction):
                 self.disabled = True
                 self.view.stop()
+                self.placeholder = self.options[int(self.values[0])].label
                 await interaction.response.edit_message(view=DropdownView(self))
-
-        # dropdown = discord.ui.Select(placeholder="Choose track to play",
-        #                              min_values=1,
-        #                              max_values=1,
-        #                              options=options)
 
         class DropdownView(discord.ui.View):
             def __init__(self, _dropdown):
-                self.item: discord.ui.Select = _dropdown
-                super().__init__(_dropdown, timeout=10)
+                self.item = _dropdown
+                super().__init__(_dropdown, timeout=30)
 
             async def interaction_check(self, interaction):
                 return interaction.user.id == ctx.user.id
@@ -152,13 +149,7 @@ class MusicBot(commands.Cog):
         await ctx.respond(view=dropdown_view)
         await dropdown_view.wait()
         value = int(dropdown.values[0])
-        print(value)
-
         await self.add_tracks(ctx, tracks[value])
-
-        # await self.client.wait_for("interaction", )
-
-
 
     @slash_command(name="pause", description="Pause current queue")
     async def pause_command(self, ctx):
