@@ -115,18 +115,50 @@ class MusicBot(commands.Cog):
             embed = Embeds.error_embed(title="Tracks can't be found",
                                        description=f"Can't find tracks with request: **{query}**")
             return await ctx.respond(embed=embed)
-        tracks_str = ""
+
+        options = []
         for i, track in enumerate(tracks):
-            tracks_str += f"**{i + 1}. {track['name']}**\n"
+            options.append(discord.SelectOption(label=f"{track['name']}",
+                                                description=f"{track['name']}",
+                                                value=str(i)))
 
-        # TODO delete VVV this VVV
-        tracks_str += "Playing first one (choose is coming..)"
+        class Dropdown(discord.ui.Select):
+            def __init__(self, _options):
+                super().__init__(placeholder="Choose track to play",
+                                 min_values=1,
+                                 max_values=1,
+                                 options=_options)
 
-        embed = Embeds.music_embed(title=f"Query: {query}",
-                                   description=tracks_str)
-        await ctx.respond(embed=embed)
+            async def callback(self, interaction: discord.Interaction):
+                self.disabled = True
+                self.view.stop()
+                await interaction.response.edit_message(view=DropdownView(self))
 
-        await self.add_tracks(ctx, tracks[0])
+        # dropdown = discord.ui.Select(placeholder="Choose track to play",
+        #                              min_values=1,
+        #                              max_values=1,
+        #                              options=options)
+
+        class DropdownView(discord.ui.View):
+            def __init__(self, _dropdown):
+                self.item: discord.ui.Select = _dropdown
+                super().__init__(_dropdown, timeout=10)
+
+            async def interaction_check(self, interaction):
+                return interaction.user.id == ctx.user.id
+
+        dropdown = Dropdown(options)
+        dropdown_view = DropdownView(dropdown)
+        await ctx.respond(view=dropdown_view)
+        await dropdown_view.wait()
+        value = int(dropdown.values[0])
+        print(value)
+
+        await self.add_tracks(ctx, tracks[value])
+
+        # await self.client.wait_for("interaction", )
+
+
 
     @slash_command(name="pause", description="Pause current queue")
     async def pause_command(self, ctx):
@@ -149,7 +181,6 @@ class MusicBot(commands.Cog):
                                                    required=True,
                                                    min_value=1,
                                                    max_value=100)):
-
         ctx.voice_client.source.volume = level / 100
 
         embed = Embeds.music_embed(title="Volume level changed",
