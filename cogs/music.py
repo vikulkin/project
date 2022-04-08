@@ -141,8 +141,8 @@ class MusicBot(commands.Cog):
 
         class DropdownView(discord.ui.View):
             def __init__(self, _dropdown):
-                self.item: discord.ui.Select = _dropdown
-                super().__init__(_dropdown, timeout=10)
+                self.item = _dropdown
+                super().__init__(_dropdown, timeout=30)
 
             async def interaction_check(self, interaction):
                 return interaction.user.id == ctx.user.id
@@ -157,8 +157,6 @@ class MusicBot(commands.Cog):
         await self.add_tracks(ctx, tracks[value])
 
         # await self.client.wait_for("interaction", )
-
-
 
     @slash_command(name="pause", description="Pause current queue")
     async def pause_command(self, ctx):
