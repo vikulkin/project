@@ -8,6 +8,7 @@ from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException, IncorrectLinkException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
+from utils.views import Dropdown, DropdownView
 from vk_parsing.main import get_request, find_tracks_by_name
 
 
@@ -123,30 +124,10 @@ class MusicBot(commands.Cog):
                                                 description=f"{track['name']}",
                                                 value=str(i)))
 
-        class Dropdown(discord.ui.Select):
-            def __init__(self, _options):
-                super().__init__(placeholder="Choose track to play",
-                                 min_values=1,
-                                 max_values=1,
-                                 options=_options)
-
-            async def callback(self, interaction: discord.Interaction):
-                self.disabled = True
-                self.view.stop()
-                self.placeholder = self.options[int(self.values[0])].label
-                await interaction.response.edit_message(view=DropdownView(self))
-
-        class DropdownView(discord.ui.View):
-            def __init__(self, _dropdown):
-                self.item = _dropdown
-                super().__init__(_dropdown, timeout=30)
-
-            async def interaction_check(self, interaction):
-                return interaction.user.id == ctx.user.id
-
         dropdown = Dropdown(options)
         dropdown_view = DropdownView(dropdown)
-        await ctx.respond(view=dropdown_view)
+        await dropdown_view.send(ctx)
+
         await dropdown_view.wait()
         value = int(dropdown.values[0])
         await self.add_tracks(ctx, tracks[value])
