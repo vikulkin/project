@@ -1,5 +1,5 @@
 import discord
-from discord import SlashCommandGroup, VoiceClient
+from discord import SlashCommandGroup
 from discord.commands import slash_command
 from discord.ext import commands
 

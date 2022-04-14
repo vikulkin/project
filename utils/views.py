@@ -1,6 +1,6 @@
 import discord
 
-from utils.buttons import PauseButton, SkipButton, RepeatButton
+from utils.buttons import PauseButton, SkipButton, RepeatButton, VolumeUpButton, VolumeDownButton
 
 
 class PlayerView(discord.ui.View):
@@ -9,7 +9,9 @@ class PlayerView(discord.ui.View):
         self.storage = storage
         items = (PauseButton(voice=voice, storage=storage),
                  SkipButton(voice=voice, storage=storage),
-                 RepeatButton(voice=voice, storage=storage))
+                 RepeatButton(voice=voice, storage=storage),
+                 VolumeUpButton(voice=voice, storage=storage),
+                 VolumeDownButton(voice=voice, storage=storage))
         super().__init__(*items, timeout=None)
 
     async def interaction_check(self, interaction):
