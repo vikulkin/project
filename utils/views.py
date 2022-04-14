@@ -1,8 +1,21 @@
 import discord
 
+from utils.buttons import PauseButton, SkipButton, RepeatButton
+
 
 class PlayerView(discord.ui.View):
-    pass
+    def __init__(self, voice, storage):
+        self.voice = voice
+        self.storage = storage
+        items = (PauseButton(voice=voice, storage=storage),
+                 SkipButton(voice=voice, storage=storage),
+                 RepeatButton(voice=voice, storage=storage))
+        super().__init__(*items, timeout=None)
+
+    async def interaction_check(self, interaction):
+        if interaction.guild.voice_client is None:
+            return False
+        return True
 
 
 class Dropdown(discord.ui.Select):

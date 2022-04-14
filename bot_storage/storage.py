@@ -1,5 +1,3 @@
-import discord
-
 from bot_storage.utils.enums import RepeatModes
 from exceptions.custrom_exceptions import EmptyQueueException
 from utils.embed_utils import Embeds
@@ -96,20 +94,23 @@ class BotStorage:
         if guild_id in self.queues:
             del self.queues[guild_id]
 
-    def get_player_embed(self, ctx):
+    def get_player_embed(self, guild_id, voice_client):
 
-        queue: Queue = self.get_queue(ctx.guild_id)
+        queue: Queue = self.get_queue(guild_id)
         if queue is None:
             raise EmptyQueueException
 
         current_index = queue.current_index
 
-        volume = ctx.voice_client.source.volume * 100
+        volume = voice_client.source.volume * 100
+
+        paused_str = "Paused" if voice_client.is_paused() else "Playing"
 
         embed = Embeds.music_embed(
-            title=f"Player in {ctx.voice_client.channel.name}",
+            title=f"Player in {voice_client.channel.name}",
             description=f"Tracks in queue: {len(queue)}\n"
                         f"Volume: **{volume}%**\n"
+                        f"{paused_str}\n"
         )
 
         if current_index - 1 >= 0:

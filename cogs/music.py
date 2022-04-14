@@ -1,5 +1,5 @@
 import discord
-from discord import SlashCommandGroup
+from discord import SlashCommandGroup, VoiceClient
 from discord.commands import slash_command
 from discord.ext import commands
 
@@ -8,7 +8,7 @@ from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException, IncorrectLinkException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
-from utils.views import Dropdown, DropdownView
+from utils.views import Dropdown, DropdownView, PlayerView
 from vk_parsing.main import get_request, find_tracks_by_name
 
 
@@ -19,10 +19,13 @@ class MusicBot(commands.Cog):
 
     @slash_command(name="player", description="Get player for current playlist")
     async def player_command(self, ctx):
-        embed = self.storage.get_player_embed(ctx)
+        embed = self.storage.get_player_embed(guild_id=ctx.guild_id, voice_client=ctx.voice_client)
         if embed is None:
             return
-        await ctx.respond(embed=embed)
+
+        view = PlayerView(ctx.voice_client, self.storage)
+
+        await ctx.respond(embed=embed, view=view)
 
     @slash_command(name="join", description="Bot join your voice channel")
     async def join_command(self, ctx):
