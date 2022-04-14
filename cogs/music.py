@@ -27,6 +27,16 @@ class MusicBot(commands.Cog):
 
         await ctx.respond(embed=embed, view=view)
 
+    @slash_command(name="stop", description="Stop listening")
+    async def stop_command(self, ctx):
+        self.storage.delete_queue(ctx.guild.id)
+
+        voice = ctx.voice_client
+        voice.stop()
+        embed = Embeds.info_embed(title="Stop playing",
+                                  description=f"Playing stopped in {voice.channel.name}")
+        await ctx.respond(embed=embed)
+
     @slash_command(name="join", description="Bot join your voice channel")
     async def join_command(self, ctx):
         voice = await join_channel(ctx)
@@ -39,7 +49,7 @@ class MusicBot(commands.Cog):
         voice = ctx.voice_client
 
         if voice.is_connected():
-            await voice.disconnect()
+            await voice.disconnect(force=False)
         embed = Embeds.info_embed(description=f"Left from channel **{voice.channel}**")
 
         await ctx.respond(embed=embed, ephemeral=True)

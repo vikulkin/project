@@ -12,6 +12,7 @@ class PauseButton(discord.ui.Button):
         )
 
     async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
         if self.voice.is_paused():
             self.voice.resume()
         else:
@@ -36,6 +37,8 @@ class SkipButton(discord.ui.Button):
         )
 
     async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
         self.voice.stop()
         if self.voice is None:
             return
@@ -59,6 +62,8 @@ class RepeatButton(discord.ui.Button):
         )
 
     async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
         queue = self.storage.get_queue(self.voice.guild.id)
         queue.switch_repeat_mode()
 
@@ -81,6 +86,8 @@ class VolumeUpButton(discord.ui.Button):
         )
 
     async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
         volume_level = self.voice.source.volume * 100
         if volume_level == 100:
             return
@@ -110,6 +117,8 @@ class VolumeDownButton(discord.ui.Button):
         )
 
     async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
         volume_level = self.voice.source.volume * 100
         if volume_level == 1:
             return
@@ -126,3 +135,20 @@ class VolumeDownButton(discord.ui.Button):
             print("embed is None")
             return
         await interaction.response.edit_message(embed=embed)
+
+
+class StopButton(discord.ui.Button):
+    def __init__(self, voice, storage):
+        self.voice = voice
+        self.storage = storage
+        super().__init__(
+            label="Stop",
+            style=discord.ButtonStyle.primary,
+            custom_id=f"{voice.guild.id}:stop"
+        )
+
+    async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
+        self.storage.delete_queue(self.voice.guild.id)
+        self.voice.stop()
