@@ -223,6 +223,18 @@ class MusicBot(commands.Cog):
         if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
             await join_channel(ctx)
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        if member != self.client.user:
+            return
+        voice = member.guild.voice_client
+
+        guild_id = member.guild.id
+        if voice and not voice.is_connected() and after.channel is None:
+            if self.storage.get_queue(guild_id) is None:
+                self.storage.delete_queue(member.guild.id)
+                voice.stop()
+
 
 def setup(bot):
     bot.add_cog(MusicBot(bot))
