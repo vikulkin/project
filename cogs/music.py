@@ -104,9 +104,13 @@ class MusicBot(commands.Cog):
                                link: discord.Option(str, "Playlist link", required=True)):
 
         await ctx.defer()
-        parsed_items = await get_request(link)
-
-        await self.add_tracks(ctx, parsed_items)
+        try:
+            parsed_items = await get_request(link)
+        except IndexError:  # temp = link.split("audio_playlist")[1]
+            embed = Embeds.error_embed(description="Incorrect link")
+            await ctx.respond(embed=embed)
+        else:
+            await self.add_tracks(ctx, parsed_items)
 
     @play_group.command(name="search", description="Find track by name")
     async def search_command(self, ctx,
@@ -191,17 +195,19 @@ class MusicBot(commands.Cog):
         voice.stop()
 
     @playlist_command.before_invoke
+    @search_command.before_invoke
+    async def ensure_voice_channel(self, ctx):
+        if not ctx.author.voice:
+            return
+        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+            await join_channel(ctx)
+
+    @playlist_command.before_invoke
     @join_command.before_invoke
     @search_command.before_invoke
     async def ensure_author_voice(self, ctx):
         if not ctx.author.voice:
             raise UserVoiceException
-
-    @playlist_command.before_invoke
-    @search_command.before_invoke
-    async def ensure_voice_channel(self, ctx):
-        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
-            await join_channel(ctx)
 
     @leave_command.before_invoke
     @player_command.before_invoke
@@ -214,7 +220,7 @@ class MusicBot(commands.Cog):
 
     @playlist_command.before_invoke
     async def ensure_vk_link(self, ctx):
-        link = ctx.args["link"]
+        link = ctx.selected_options[0]["value"]   # [{'value': '***', 'type': 3, 'name': 'link'}]
         if VK_URL_PREFIX not in link:
             raise IncorrectLinkException
 
