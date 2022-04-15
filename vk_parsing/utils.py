@@ -1,5 +1,4 @@
 
-# TODO >>
 def optimize_link(link: str) -> dict:
     access_key = None
     if link.startswith("https://vk.com/music/album/"):
@@ -46,3 +45,16 @@ def parse_track_info(item: dict):
         "thumbnail": image,
         "id": track_id
     }
+
+
+def time_format(seconds):
+    seconds = seconds
+    d = seconds // (3600 * 24)
+    h = seconds // 3600 % 24
+    m = seconds % 3600 // 60
+    s = seconds % 3600 % 60
+    if d > 0:
+        return f"{d:02d}D {h:02d}:{m:02d}:{s:02d}"
+    if h > 0:
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    return f"{m:02d}:{s:02d}"

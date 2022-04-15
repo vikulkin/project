@@ -18,12 +18,7 @@ class PauseButton(discord.ui.Button):
         else:
             self.voice.pause()
 
-        embed = self.storage.get_player_embed(guild_id=interaction.guild_id,
-                                              voice_client=interaction.guild.voice_client)
-        if embed is None:
-            print("embed is None")
-            return
-        await interaction.response.edit_message(embed=embed)
+        await self.storage.update_message(interaction.guild.id)
 
 
 class SkipButton(discord.ui.Button):
@@ -43,12 +38,7 @@ class SkipButton(discord.ui.Button):
         if self.voice is None:
             return
 
-        embed = self.storage.get_player_embed(guild_id=interaction.guild_id,
-                                              voice_client=interaction.guild.voice_client)
-        if embed is None:
-            print("embed is None")
-            return
-        await interaction.response.edit_message(embed=embed)
+        await self.storage.update_message(interaction.guild.id)
 
 
 class RepeatButton(discord.ui.Button):
@@ -67,12 +57,7 @@ class RepeatButton(discord.ui.Button):
         queue = self.storage.get_queue(self.voice.guild.id)
         queue.switch_repeat_mode()
 
-        embed = self.storage.get_player_embed(guild_id=interaction.guild_id,
-                                              voice_client=interaction.guild.voice_client)
-        if embed is None:
-            print("embed is None")
-            return
-        await interaction.response.edit_message(embed=embed)
+        await self.storage.update_message(interaction.guild.id)
 
 
 class VolumeUpButton(discord.ui.Button):
@@ -98,12 +83,7 @@ class VolumeUpButton(discord.ui.Button):
 
         self.voice.source.volume = volume_level / 100
 
-        embed = self.storage.get_player_embed(guild_id=interaction.guild_id,
-                                              voice_client=interaction.guild.voice_client)
-        if embed is None:
-            print("embed is None")
-            return
-        await interaction.response.edit_message(embed=embed)
+        await self.storage.update_message(interaction.guild.id)
 
 
 class VolumeDownButton(discord.ui.Button):
@@ -129,12 +109,7 @@ class VolumeDownButton(discord.ui.Button):
 
         self.voice.source.volume = volume_level / 100
 
-        embed = self.storage.get_player_embed(guild_id=interaction.guild_id,
-                                              voice_client=interaction.guild.voice_client)
-        if embed is None:
-            print("embed is None")
-            return
-        await interaction.response.edit_message(embed=embed)
+        await self.storage.update_message(interaction.guild.id)
 
 
 class StopButton(discord.ui.Button):

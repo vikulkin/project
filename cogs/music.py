@@ -8,7 +8,7 @@ from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException, IncorrectLinkException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
-from utils.views import Dropdown, DropdownView, PlayerView
+from utils.views import Dropdown, DropdownView
 from vk_parsing.main import get_request, find_tracks_by_name
 
 
@@ -19,13 +19,7 @@ class MusicBot(commands.Cog):
 
     @slash_command(name="player", description="Get player for current playlist")
     async def player_command(self, ctx):
-        embed = self.storage.get_player_embed(guild_id=ctx.guild_id, voice_client=ctx.voice_client)
-        if embed is None:
-            return
-
-        view = PlayerView(ctx.voice_client, self.storage)
-
-        await ctx.respond(embed=embed, view=view)
+        await self.storage.send_message(ctx)
 
     @slash_command(name="stop", description="Stop listening")
     async def stop_command(self, ctx):
@@ -203,10 +197,17 @@ class MusicBot(commands.Cog):
         if not ctx.author.voice:
             raise UserVoiceException
 
+    @playlist_command.before_invoke
+    @search_command.before_invoke
+    async def ensure_voice_channel(self, ctx):
+        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+            await join_channel(ctx)
+
     @leave_command.before_invoke
     @player_command.before_invoke
     @skip_command.before_invoke
     @pause_command.before_invoke
+    @stop_command.before_invoke
     async def ensure_self_voice(self, ctx):
         if ctx.voice_client is None:
             raise SelfVoiceException
@@ -217,11 +218,14 @@ class MusicBot(commands.Cog):
         if VK_URL_PREFIX not in link:
             raise IncorrectLinkException
 
-    @playlist_command.before_invoke
-    @search_command.before_invoke
-    async def ensure_voice_channel(self, ctx):
-        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
-            await join_channel(ctx)
+    @playlist_command.after_invoke
+    @search_command.after_invoke
+    @pause_command.after_invoke
+    @resume_command.after_invoke
+    @skip_command.after_invoke
+    @repeat_command.after_invoke
+    async def update_player_message(self, ctx):
+        await self.storage.update_message(ctx.guild.id)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):

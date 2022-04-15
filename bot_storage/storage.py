@@ -1,6 +1,8 @@
 from bot_storage.utils.enums import RepeatModes
 from exceptions.custrom_exceptions import EmptyQueueException
 from utils.embed_utils import Embeds
+from utils.views import PlayerView
+from vk_parsing.utils import time_format
 
 
 class Queue:
@@ -9,6 +11,7 @@ class Queue:
         self._tracks = []
         self.current_index = 0
         self._repeat_mode = RepeatModes.NONE
+        self.player_message = None
 
     def __bool__(self):
         return bool(self._tracks)
@@ -31,6 +34,14 @@ class Queue:
     @property
     def current_track(self):
         return self._tracks[self.current_index]
+
+    async def update_message(self, message):
+        if self.player_message is not None:
+            try:
+                await self.player_message.delete()
+            except:
+                pass
+        self.player_message = message
 
     def add_tracks(self, tracks):
         if isinstance(tracks, dict):
@@ -96,7 +107,7 @@ class BotStorage:
 
     def get_player_embed(self, guild_id, voice_client):
 
-        queue: Queue = self.get_queue(guild_id)
+        queue = self.get_queue(guild_id)
         if queue is None:
             raise EmptyQueueException
 
@@ -104,33 +115,62 @@ class BotStorage:
 
         volume = voice_client.source.volume * 100
 
-        paused_str = "Paused" if voice_client.is_paused() else "Playing"
+        paused_str = f"```{'⏸ Paused' if voice_client.is_paused() else '▶ Playing'}```"
 
         embed = Embeds.music_embed(
-            title=f"Player in {voice_client.channel.name}",
-            description=f"Tracks in queue: {len(queue)}\n"
-                        f"Volume: **{volume}%**\n"
+            title=f"🎧 Player in {voice_client.channel.name}",
+            description=f"📃 Tracks in queue: **{len(queue)}**\n"
+                        f"🔊 Volume: **{volume}%**\n"
                         f"{paused_str}\n"
         )
 
         if current_index - 1 >= 0:
+            previous_track = queue.tracks[current_index - 1]
+            previous_track_duration = time_format(previous_track["duration"])
+
             embed.add_field(
                 name="Previous track",
-                value=f"**{current_index}. {queue.tracks[current_index - 1]['name']}**\n",
+                value=f"**{current_index}. {previous_track['name']}** {previous_track_duration}\n",
                 inline=False
             )
+
+        current_track = queue.tracks[current_index]
+        current_track_duration = time_format(current_track["duration"])
         embed.add_field(
-            name="Now playing",
-            value=f"**{current_index + 1}. {queue.tracks[current_index]['name']}**\n",
+            name="Current track",
+            value=f"**{current_index + 1}. {current_track['name']}** {current_track_duration}\n",
             inline=False
         )
 
         if current_index + 1 < len(queue):
+            next_track = queue.tracks[current_index + 1]
+            next_track_duration = time_format(next_track["duration"])
+
             embed.add_field(
                 name="Next track",
-                value=f"**{current_index + 2}. {queue.tracks[current_index + 1]['name']}**\n",
+                value=f"**{current_index + 2}. {next_track['name']}** {next_track_duration}\n",
                 inline=False
             )
         embed.set_thumbnail(url=queue.tracks[current_index]["thumbnail"])
 
         return embed
+
+    async def send_message(self, ctx):
+        embed = self.get_player_embed(ctx.guild_id, ctx.voice_client)
+        if embed is None:
+            return
+        view = PlayerView(ctx.voice_client, self)
+        message = await ctx.respond(embed=embed, view=view)
+        queue = self.get_queue(ctx.guild_id)
+
+        await queue.update_message(message)
+
+    async def update_message(self, guild_id):
+        queue = self.get_queue(guild_id)
+        if queue is None:
+            return
+        voice = self.client.get_guild(guild_id).voice_client
+        embed = self.get_player_embed(guild_id, voice)
+        if embed is None:
+            return
+        await queue.player_message.edit(embed=embed)
