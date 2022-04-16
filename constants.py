@@ -19,3 +19,18 @@ REPEAT_MODES_STR = {
     1: "One",
     2: "All"
 }
+
+REPEAT_MODES_EMOJIS = {
+    0: "🔁",
+    1: "🔂",
+    2: "🔁",
+}
+
+
+class PlayerEmojis:
+    PAUSE_EMOJI = "⏯"
+    SKIP_EMOJI = "⏩"
+    REPEAT_EMOJI = "🔂"
+    VOL_UP_EMOJI = "🔊"
+    VOL_DOWN_EMOJI = "🔉"
+    STOP_EMOJI = "⏹"

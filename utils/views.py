@@ -10,8 +10,8 @@ class PlayerView(discord.ui.View):
         items = (PauseButton(voice=voice, storage=storage),
                  SkipButton(voice=voice, storage=storage),
                  RepeatButton(voice=voice, storage=storage),
-                 VolumeUpButton(voice=voice, storage=storage),
                  VolumeDownButton(voice=voice, storage=storage),
+                 VolumeUpButton(voice=voice, storage=storage),
                  StopButton(voice=voice, storage=storage))
         super().__init__(*items, timeout=None)
 

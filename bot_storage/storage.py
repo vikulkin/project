@@ -1,4 +1,5 @@
 from bot_storage.utils.enums import RepeatModes
+from constants import REPEAT_MODES_STR, REPEAT_MODES_EMOJIS
 from exceptions.custrom_exceptions import EmptyQueueException
 from utils.embed_utils import Embeds
 from utils.views import PlayerView
@@ -29,7 +30,11 @@ class Queue:
 
     @property
     def repeat_mode(self):
-        return self._repeat_mode
+        return REPEAT_MODES_STR[self._repeat_mode.value]
+
+    @property
+    def repeat_mode_emoji(self):
+        return REPEAT_MODES_EMOJIS[self._repeat_mode.value]
 
     @property
     def current_track(self):
@@ -60,16 +65,16 @@ class Queue:
 
         if self.current_index >= len(self):
 
-            if self.repeat_mode == RepeatModes.NONE:
+            if self._repeat_mode == RepeatModes.NONE:
                 self._tracks.clear()
                 return
-            elif self.repeat_mode == RepeatModes.ALL:
+            elif self._repeat_mode == RepeatModes.ALL:
                 self.current_index = 0
 
         elif self.current_index < 0:
-            if self.repeat_mode == RepeatModes.ALL:
+            if self._repeat_mode == RepeatModes.ALL:
                 self.current_index = len(self) - 1
-            elif self.repeat_mode == RepeatModes.NONE:
+            elif self._repeat_mode == RepeatModes.NONE:
                 self._tracks.clear()
                 return
 
@@ -106,7 +111,8 @@ class BotStorage:
             del self.queues[guild_id]
 
     def get_player_embed(self, guild_id, voice_client):
-
+        if voice_client is None:
+            return
         queue = self.get_queue(guild_id)
         if queue is None:
             raise EmptyQueueException
@@ -115,12 +121,16 @@ class BotStorage:
 
         volume = voice_client.source.volume * 100
 
-        paused_str = f"```{'⏸ Paused' if voice_client.is_paused() else '▶ Playing'}```"
+        repeat_str = f"{queue.repeat_mode_emoji} Repeat mode : **{queue.repeat_mode}**"
+        if queue.repeat_mode == "None":
+            repeat_str = f"~~{repeat_str}~~"
 
+        paused_str = f"`{'⏸ Paused' if voice_client.is_paused() else '▶ Playing'}`"
         embed = Embeds.music_embed(
             title=f"🎧 Player in {voice_client.channel.name}",
             description=f"📃 Tracks in queue: **{len(queue)}**\n"
                         f"🔊 Volume: **{volume}%**\n"
+                        f"{repeat_str}\n"
                         f"{paused_str}\n"
         )
 
@@ -130,7 +140,7 @@ class BotStorage:
 
             embed.add_field(
                 name="Previous track",
-                value=f"**{current_index}. {previous_track['name']}** {previous_track_duration}\n",
+                value=f"**{current_index}. {previous_track['name']}** [{previous_track_duration}]\n",
                 inline=False
             )
 
@@ -138,7 +148,7 @@ class BotStorage:
         current_track_duration = time_format(current_track["duration"])
         embed.add_field(
             name="Current track",
-            value=f"**{current_index + 1}. {current_track['name']}** {current_track_duration}\n",
+            value=f"**{current_index + 1}. {current_track['name']}** [{current_track_duration}]\n",
             inline=False
         )
 
@@ -148,7 +158,7 @@ class BotStorage:
 
             embed.add_field(
                 name="Next track",
-                value=f"**{current_index + 2}. {next_track['name']}** {next_track_duration}\n",
+                value=f"**{current_index + 2}. {next_track['name']}** [{next_track_duration}]\n",
                 inline=False
             )
         embed.set_thumbnail(url=queue.tracks[current_index]["thumbnail"])
@@ -169,7 +179,11 @@ class BotStorage:
         queue = self.get_queue(guild_id)
         if queue is None:
             return
+        message = queue.player_message
+        if message is None:
+            return
         voice = self.client.get_guild(guild_id).voice_client
+
         embed = self.get_player_embed(guild_id, voice)
         if embed is None:
             return

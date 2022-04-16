@@ -176,12 +176,8 @@ class MusicBot(commands.Cog):
         queue = self.storage.get_queue(ctx.guild.id)
         queue.switch_repeat_mode()
 
-        repeat_mode = queue.repeat_mode.value
-
-        rm_str = REPEAT_MODES_STR.get(repeat_mode)
-
         embed = Embeds.music_embed(title="Repeat mode switched",
-                                   description=f"Repeat mode switched to **{rm_str}**")
+                                   description=f"Repeat mode switched to **{queue.repeat_mode}**")
 
         await ctx.respond(embed=embed)
 
@@ -195,19 +191,19 @@ class MusicBot(commands.Cog):
         voice.stop()
 
     @playlist_command.before_invoke
+    @join_command.before_invoke
+    @search_command.before_invoke
+    async def ensure_author_voice(self, ctx):
+        if not ctx.author.voice:
+            raise UserVoiceException
+
+    @playlist_command.before_invoke
     @search_command.before_invoke
     async def ensure_voice_channel(self, ctx):
         if not ctx.author.voice:
             return
         if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
             await join_channel(ctx)
-
-    @playlist_command.before_invoke
-    @join_command.before_invoke
-    @search_command.before_invoke
-    async def ensure_author_voice(self, ctx):
-        if not ctx.author.voice:
-            raise UserVoiceException
 
     @leave_command.before_invoke
     @player_command.before_invoke

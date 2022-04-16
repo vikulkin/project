@@ -1,13 +1,15 @@
 import discord
 
+from constants import PlayerEmojis
+
 
 class PauseButton(discord.ui.Button):
     def __init__(self, voice, storage):
         self.voice = voice
         self.storage = storage
         super().__init__(
-            label="Play/Pause",
-            style=discord.ButtonStyle.primary,
+            emoji=PlayerEmojis.PAUSE_EMOJI,
+            style=discord.ButtonStyle.secondary,
             custom_id=f"{voice.guild.id}:pause"
         )
 
@@ -26,8 +28,8 @@ class SkipButton(discord.ui.Button):
         self.voice = voice
         self.storage = storage
         super().__init__(
-            label="Skip",
-            style=discord.ButtonStyle.primary,
+            emoji=PlayerEmojis.SKIP_EMOJI,
+            style=discord.ButtonStyle.secondary,
             custom_id=f"{voice.guild.id}:skip"
         )
 
@@ -46,8 +48,8 @@ class RepeatButton(discord.ui.Button):
         self.voice = voice
         self.storage = storage
         super().__init__(
-            label="RepeatMode",
-            style=discord.ButtonStyle.primary,
+            emoji=PlayerEmojis.REPEAT_EMOJI,
+            style=discord.ButtonStyle.secondary,
             custom_id=f"{voice.guild.id}:repeat_mode"
         )
 
@@ -60,39 +62,13 @@ class RepeatButton(discord.ui.Button):
         await self.storage.update_message(interaction.guild.id)
 
 
-class VolumeUpButton(discord.ui.Button):
-    def __init__(self, voice, storage):
-        self.voice = voice
-        self.storage = storage
-        super().__init__(
-            label="VolumeUp",
-            style=discord.ButtonStyle.primary,
-            custom_id=f"{voice.guild.id}:volume_up"
-        )
-
-    async def callback(self, interaction):
-        self.voice = interaction.guild.voice_client
-
-        volume_level = self.voice.source.volume * 100
-        if volume_level == 100:
-            return
-
-        volume_level += 10
-        if volume_level > 100:
-            volume_level = 100
-
-        self.voice.source.volume = volume_level / 100
-
-        await self.storage.update_message(interaction.guild.id)
-
-
 class VolumeDownButton(discord.ui.Button):
     def __init__(self, voice, storage):
         self.voice = voice
         self.storage = storage
         super().__init__(
-            label="VolumeDown",
-            style=discord.ButtonStyle.primary,
+            emoji=PlayerEmojis.VOL_DOWN_EMOJI,
+            style=discord.ButtonStyle.secondary,
             custom_id=f"{voice.guild.id}:volume_down"
         )
 
@@ -112,13 +88,39 @@ class VolumeDownButton(discord.ui.Button):
         await self.storage.update_message(interaction.guild.id)
 
 
+class VolumeUpButton(discord.ui.Button):
+    def __init__(self, voice, storage):
+        self.voice = voice
+        self.storage = storage
+        super().__init__(
+            emoji=PlayerEmojis.VOL_UP_EMOJI,
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"{voice.guild.id}:volume_up"
+        )
+
+    async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
+        volume_level = self.voice.source.volume * 100
+        if volume_level == 100:
+            return
+
+        volume_level += 10
+        if volume_level > 100:
+            volume_level = 100
+
+        self.voice.source.volume = volume_level / 100
+
+        await self.storage.update_message(interaction.guild.id)
+
+
 class StopButton(discord.ui.Button):
     def __init__(self, voice, storage):
         self.voice = voice
         self.storage = storage
         super().__init__(
-            label="Stop",
-            style=discord.ButtonStyle.primary,
+            emoji=PlayerEmojis.STOP_EMOJI,
+            style=discord.ButtonStyle.secondary,
             custom_id=f"{voice.guild.id}:stop"
         )
 
