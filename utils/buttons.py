@@ -1,6 +1,28 @@
+import asyncio
+
 import discord
 
 from constants import PlayerEmojis
+
+
+class BackButton(discord.ui.Button):
+    def __init__(self, voice, storage):
+        self.voice = voice
+        self.storage = storage
+        super().__init__(
+            emoji=PlayerEmojis.BACK_EMOJI,
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"{voice.guild.id}:back"
+        )
+
+    async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
+        queue = self.storage.get_queue(interaction.guild.id)
+        queue.switch_reverse_mode()
+        self.voice.stop()
+        await asyncio.sleep(.2)
+        queue.switch_reverse_mode()
 
 
 class PauseButton(discord.ui.Button):
@@ -39,8 +61,6 @@ class SkipButton(discord.ui.Button):
         self.voice.stop()
         if self.voice is None:
             return
-
-        await self.storage.update_message(interaction.guild.id)
 
 
 class RepeatButton(discord.ui.Button):

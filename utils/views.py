@@ -1,13 +1,15 @@
 import discord
 
-from utils.buttons import PauseButton, SkipButton, RepeatButton, VolumeUpButton, VolumeDownButton, StopButton
+from utils.buttons import PauseButton, SkipButton, RepeatButton, VolumeUpButton, VolumeDownButton, StopButton, \
+    BackButton
 
 
 class PlayerView(discord.ui.View):
     def __init__(self, voice, storage):
         self.voice = voice
         self.storage = storage
-        items = (PauseButton(voice=voice, storage=storage),
+        items = (BackButton(voice=voice, storage=storage),
+                 PauseButton(voice=voice, storage=storage),
                  SkipButton(voice=voice, storage=storage),
                  RepeatButton(voice=voice, storage=storage),
                  VolumeDownButton(voice=voice, storage=storage),

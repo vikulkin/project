@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord import SlashCommandGroup
 from discord.commands import slash_command
@@ -68,12 +70,13 @@ class MusicBot(commands.Cog):
             source=source, after=lambda e: self._play_next(e, ctx)
         )
 
+        asyncio.run_coroutine_threadsafe(self.storage.update_message(ctx.guild.id), self.client.loop)
+
     async def add_tracks(self, ctx, tracks):
         if self.storage.get_queue(ctx.guild.id) is None:
 
-            new_queue = Queue(ctx.guild.id)
+            new_queue = self.storage.add_queue(ctx.guild.id)
             new_queue.add_tracks(tracks)
-            self.storage.add_queue(new_queue, ctx.guild.id)
 
             track_to_play = tracks if isinstance(tracks, dict) else tracks[0]
 
@@ -191,14 +194,15 @@ class MusicBot(commands.Cog):
     @slash_command(name="skip", description="Skip current track")
     async def skip_command(self, ctx):
         queue = self.storage.get_queue(ctx.guild.id)
-        current_track = queue.current_track
-        embed = Embeds.music_embed(title="Track skipped", description=f"{current_track['name']}")
+        embed = Embeds.music_embed(title="Track skipped", description=f"{queue.current_track['name']}")
 
         voice = ctx.voice_client
         voice.stop()
-
-        new_current_track = queue.current_track
-        embed.add_field(name="Now playing", value=f"{new_current_track['name']}")
+        next_track = queue.next_track
+        if next_track is None:
+            embed.add_field(name="Playing stopped", value="Removing queue")
+        else:
+            embed.add_field(name="Now playing", value=f"{next_track['name']}")
 
         await ctx.respond(embed=embed)
 
@@ -209,7 +213,11 @@ class MusicBot(commands.Cog):
         queue.switch_reverse_mode()
         voice = ctx.voice_client
         voice.stop()
-        embed = Embeds.music_embed(title="Now playing", description=queue.current_track['name'])
+        next_track = queue.next_track
+        if next_track is None:
+            embed = Embeds.info_embed(description="Stop playing")
+        else:
+            embed = Embeds.music_embed(title="Now playing", description=next_track['name'])
         await ctx.respond(embed=embed)
         queue.switch_reverse_mode()
 
@@ -218,7 +226,7 @@ class MusicBot(commands.Cog):
         queue = self.storage.get_queue(ctx.guild.id)
         queue.switch_reverse_mode()
 
-        embed = Embeds.music_embed(description="Reverse mode switched")
+        embed = Embeds.info_embed(description="Reverse mode switched")
         await ctx.respond(embed=embed)
 
     @playlist_command.before_invoke
@@ -241,9 +249,8 @@ class MusicBot(commands.Cog):
     @search_command.after_invoke
     @pause_command.after_invoke
     @resume_command.after_invoke
-    @skip_command.after_invoke
-    @back_command.after_invoke
     @repeat_command.after_invoke
+    @reverse_command.after_invoke
     async def update_player_message(self, ctx):
         await self.storage.update_message(ctx.guild.id)
 

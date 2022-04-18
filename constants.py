@@ -2,7 +2,7 @@
 class CustomColors:
     ERROR_COLOR = 0xE74C3C
     MUSIC_COLOR = 0x7532a8
-    INFO_COLOR = 0x5e2c00
+    INFO_COLOR = 0xffaf5e
 
 
 DEBUG_GUILDS = [821749224739831828, ]
@@ -28,6 +28,7 @@ REPEAT_MODES_EMOJIS = {
 
 
 class PlayerEmojis:
+    BACK_EMOJI = "⏪"
     PAUSE_EMOJI = "⏯"
     SKIP_EMOJI = "⏩"
     REPEAT_EMOJI = "🔂"

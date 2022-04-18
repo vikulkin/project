@@ -1,3 +1,5 @@
+import discord
+
 from bot_storage.utils.enums import RepeatModes
 from constants import REPEAT_MODES_STR, REPEAT_MODES_EMOJIS
 from exceptions.custrom_exceptions import EmptyQueueException
@@ -7,7 +9,8 @@ from vk_parsing.utils import time_format
 
 
 class Queue:
-    def __init__(self, guild_id):
+    def __init__(self, guild_id, storage):
+        self.storage = storage
         self._guild_id = guild_id
         self._tracks = []
         self.current_index = 0
@@ -41,6 +44,13 @@ class Queue:
     def current_track(self):
         return self._tracks[self.current_index]
 
+    @property
+    def next_track(self):
+        index = self._get_next_index()
+        if index is None:
+            return
+        return self._tracks[index]
+
     def switch_reverse_mode(self):
         self.reverse_mode = not self.reverse_mode
 
@@ -58,30 +68,34 @@ class Queue:
         else:
             self._tracks.extend(tracks)
 
-    def get_next_track(self):
+    def _get_next_index(self):
         if self._repeat_mode == RepeatModes.ONE:
-            return self._tracks[self.current_index]
+            return self.current_index
 
         if self.reverse_mode:
-            self.current_index -= 1
+            index = self.current_index - 1
+            if index < 0:
+                if self._repeat_mode == RepeatModes.NONE:
+                    return
+                elif self._repeat_mode == RepeatModes.ALL:
+                    index = len(self) - 1
         else:
-            self.current_index += 1
+            index = self.current_index + 1
+            if index >= len(self):
+                if self._repeat_mode == RepeatModes.NONE:
+                    return
+                elif self._repeat_mode == RepeatModes.ALL:
+                    index = 0
 
-        if self.current_index >= len(self):
+        return index
 
-            if self._repeat_mode == RepeatModes.NONE:
-                self._tracks.clear()
-                return
-            elif self._repeat_mode == RepeatModes.ALL:
-                self.current_index = 0
-
-        elif self.current_index < 0:
-            if self._repeat_mode == RepeatModes.ALL:
-                self.current_index = len(self) - 1
-            elif self._repeat_mode == RepeatModes.NONE:
-                self._tracks.clear()
-                return
-
+    def get_next_track(self):
+        index = self._get_next_index()
+        if index is None:
+            # self._tracks.clear()
+            self.storage.delete_queue(self.guild_id)
+            return
+        self.current_index = index
         return self._tracks[self.current_index]
 
     def switch_repeat_mode(self):
@@ -104,8 +118,10 @@ class BotStorage:
             return
         queue.add_tracks(tracks)
 
-    def add_queue(self, queue, guild_id):
+    def add_queue(self, guild_id):
+        queue = Queue(guild_id, self)
         self.queues[guild_id] = queue
+        return queue
 
     def get_queue(self, guild_id):
         return self.queues.get(guild_id)
@@ -135,6 +151,7 @@ class BotStorage:
             description=f"📃 Tracks in queue: **{len(queue)}**\n"
                         f"🔊 Volume: **{volume}%**\n"
                         f"{repeat_str}\n"
+                        f"Reserve mode: **{'on' if queue.reverse_mode else 'off'}**\n"
                         f"{paused_str}\n"
         )
 
@@ -174,7 +191,11 @@ class BotStorage:
         if embed is None:
             return
         view = PlayerView(ctx.voice_client, self)
-        message = await ctx.respond(embed=embed, view=view)
+        interaction = await ctx.respond(embed=embed, view=view)
+        if isinstance(interaction, discord.Interaction):
+            message = interaction.message
+        else:
+            message = interaction
         queue = self.get_queue(ctx.guild_id)
 
         await queue.update_message(message)
