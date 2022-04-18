@@ -4,7 +4,7 @@ from discord.commands import slash_command
 from discord.ext import commands
 
 from bot_storage.storage import BotStorage, Queue
-from constants import VK_URL_PREFIX, FFMPEG_OPTIONS, REPEAT_MODES_STR
+from constants import VK_URL_PREFIX, FFMPEG_OPTIONS
 from exceptions.custrom_exceptions import UserVoiceException, SelfVoiceException, IncorrectLinkException
 from utils.commands_utils import join_channel
 from utils.embed_utils import Embeds
@@ -50,12 +50,12 @@ class MusicBot(commands.Cog):
 
     def _play_next(self, errors, ctx):
         queue: Queue = self.storage.get_queue(ctx.guild.id)
-
+        if queue is None:
+            return
         voice = ctx.voice_client
         if voice is None:
             return
-
-        next_track = queue.get_next_track(reverse=False)
+        next_track = queue.get_next_track()
         if next_track is None:
             self.storage.delete_queue(ctx.guild.id)
             return
@@ -102,6 +102,11 @@ class MusicBot(commands.Cog):
     @play_group.command(name="playlist", description="Play tracks from VK playlist")
     async def playlist_command(self, ctx,
                                link: discord.Option(str, "Playlist link", required=True)):
+        if VK_URL_PREFIX not in link:
+            raise IncorrectLinkException
+
+        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+            await join_channel(ctx)
 
         await ctx.defer()
         try:
@@ -115,6 +120,8 @@ class MusicBot(commands.Cog):
     @play_group.command(name="search", description="Find track by name")
     async def search_command(self, ctx,
                              query: discord.Option(str, "Search query", required=True)):
+        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
+            await join_channel(ctx)
 
         await ctx.defer()
         try:
@@ -183,12 +190,36 @@ class MusicBot(commands.Cog):
 
     @slash_command(name="skip", description="Skip current track")
     async def skip_command(self, ctx):
-        current_track = self.storage.get_queue(ctx.guild.id).current_track
+        queue = self.storage.get_queue(ctx.guild.id)
+        current_track = queue.current_track
         embed = Embeds.music_embed(title="Track skipped", description=f"{current_track['name']}")
-        await ctx.respond(embed=embed)
 
         voice = ctx.voice_client
         voice.stop()
+
+        new_current_track = queue.current_track
+        embed.add_field(name="Now playing", value=f"{new_current_track['name']}")
+
+        await ctx.respond(embed=embed)
+
+    @slash_command(name="back", description="Play previous track")
+    async def back_command(self, ctx):
+        queue = self.storage.get_queue(ctx.guild.id)
+
+        queue.switch_reverse_mode()
+        voice = ctx.voice_client
+        voice.stop()
+        embed = Embeds.music_embed(title="Now playing", description=queue.current_track['name'])
+        await ctx.respond(embed=embed)
+        queue.switch_reverse_mode()
+
+    @slash_command(name="reverse", description="Switch reverse play mode")
+    async def reverse_command(self, ctx):
+        queue = self.storage.get_queue(ctx.guild.id)
+        queue.switch_reverse_mode()
+
+        embed = Embeds.music_embed(description="Reverse mode switched")
+        await ctx.respond(embed=embed)
 
     @playlist_command.before_invoke
     @join_command.before_invoke
@@ -196,14 +227,6 @@ class MusicBot(commands.Cog):
     async def ensure_author_voice(self, ctx):
         if not ctx.author.voice:
             raise UserVoiceException
-
-    @playlist_command.before_invoke
-    @search_command.before_invoke
-    async def ensure_voice_channel(self, ctx):
-        if not ctx.author.voice:
-            return
-        if ctx.voice_client is None or ctx.voice_client.channel != ctx.author.voice.channel:
-            await join_channel(ctx)
 
     @leave_command.before_invoke
     @player_command.before_invoke
@@ -214,17 +237,12 @@ class MusicBot(commands.Cog):
         if ctx.voice_client is None:
             raise SelfVoiceException
 
-    @playlist_command.before_invoke
-    async def ensure_vk_link(self, ctx):
-        link = ctx.selected_options[0]["value"]   # [{'value': '***', 'type': 3, 'name': 'link'}]
-        if VK_URL_PREFIX not in link:
-            raise IncorrectLinkException
-
     @playlist_command.after_invoke
     @search_command.after_invoke
     @pause_command.after_invoke
     @resume_command.after_invoke
     @skip_command.after_invoke
+    @back_command.after_invoke
     @repeat_command.after_invoke
     async def update_player_message(self, ctx):
         await self.storage.update_message(ctx.guild.id)

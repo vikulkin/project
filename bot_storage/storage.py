@@ -13,6 +13,7 @@ class Queue:
         self.current_index = 0
         self._repeat_mode = RepeatModes.NONE
         self.player_message = None
+        self.reverse_mode = False
 
     def __bool__(self):
         return bool(self._tracks)
@@ -40,6 +41,9 @@ class Queue:
     def current_track(self):
         return self._tracks[self.current_index]
 
+    def switch_reverse_mode(self):
+        self.reverse_mode = not self.reverse_mode
+
     async def update_message(self, message):
         if self.player_message is not None:
             try:
@@ -54,11 +58,11 @@ class Queue:
         else:
             self._tracks.extend(tracks)
 
-    def get_next_track(self, reverse=False):
+    def get_next_track(self):
         if self._repeat_mode == RepeatModes.ONE:
             return self._tracks[self.current_index]
 
-        if reverse:
+        if self.reverse_mode:
             self.current_index -= 1
         else:
             self.current_index += 1
