@@ -150,15 +150,13 @@ class BotStorage:
             repeat_str = f"~~{repeat_str}~~"
 
         paused_str = f"`{'⏸ Paused' if voice_client.is_paused() else '▶ Playing'}`"
-        embed = Embeds.music_embed(
+        embed: discord.Embed = Embeds.music_embed(
             title=f"🎧 Player in {voice_client.channel.name}",
-            description=f"📃 Tracks in queue: **{len(queue)}**\n"
-                        f"🔊 Volume: **{volume}%**\n"
-                        f"{repeat_str}\n"
+            description=f"{repeat_str}\n"
                         f"Reserve mode: **{'on' if queue.reverse_mode else 'off'}**\n"
                         f"{paused_str}\n"
         )
-
+        embed.set_footer(text=f"📃 Tracks in queue: **{len(queue)}**  |  🔊 Volume: **{volume}%**")
         if current_index - 1 >= 0:
             previous_track = queue.tracks[current_index - 1]
             previous_track_duration = time_format(previous_track["duration"])

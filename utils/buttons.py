@@ -107,6 +107,8 @@ class VolumeDownButton(discord.ui.Button):
 
         await self.storage.update_message(interaction.guild.id)
 
+        self.storage.client.change_volume(interaction.guild.id, volume_level)
+
 
 class VolumeUpButton(discord.ui.Button):
     def __init__(self, voice, storage):
@@ -132,6 +134,7 @@ class VolumeUpButton(discord.ui.Button):
         self.voice.source.volume = volume_level / 100
 
         await self.storage.update_message(interaction.guild.id)
+        self.storage.client.change_volume(interaction.guild.id, volume_level)
 
 
 class StopButton(discord.ui.Button):

@@ -36,17 +36,15 @@ class Client(discord.Bot):
         self.db.commit()
 
     def get_volume(self, guild_id):
-        cursor = self.db.cursor()
-        cursor.execute(f"SELECT volume FROM guild WHERE id = {guild_id}")
-        result = cursor.fetchone()
+        self.cursor.execute(f"SELECT volume FROM guild WHERE id = {guild_id}")
+        result = self.cursor.fetchone()
         if result is not None:
             return result[0]
         return
 
     def get_repeat_mode(self, guild_id):
-        cursor = self.db.cursor()
-        cursor.execute(f"SELECT repeatMode FROM guild WHERE id = {guild_id}")
-        result = cursor.fetchone()
+        self.cursor.execute(f"SELECT repeatMode FROM guild WHERE id = {guild_id}")
+        result = self.cursor.fetchone()
         if result is not None:
             return result[0]
         return
