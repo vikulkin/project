@@ -12,7 +12,8 @@ class BackButton(discord.ui.Button):
         super().__init__(
             emoji=PlayerEmojis.BACK_EMOJI,
             style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:back"
+            custom_id=f"{voice.guild.id}:back",
+            row=0
         )
 
     async def callback(self, interaction):
@@ -32,7 +33,8 @@ class PauseButton(discord.ui.Button):
         super().__init__(
             emoji=PlayerEmojis.PAUSE_EMOJI,
             style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:pause"
+            custom_id=f"{voice.guild.id}:pause",
+            row=0
         )
 
     async def callback(self, interaction):
@@ -52,7 +54,8 @@ class SkipButton(discord.ui.Button):
         super().__init__(
             emoji=PlayerEmojis.SKIP_EMOJI,
             style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:skip"
+            custom_id=f"{voice.guild.id}:skip",
+            row=0
         )
 
     async def callback(self, interaction):
@@ -70,7 +73,8 @@ class RepeatButton(discord.ui.Button):
         super().__init__(
             emoji=PlayerEmojis.REPEAT_EMOJI,
             style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:repeat_mode"
+            custom_id=f"{voice.guild.id}:repeat_mode",
+            row=0
         )
 
     async def callback(self, interaction):
@@ -82,6 +86,24 @@ class RepeatButton(discord.ui.Button):
         await self.storage.update_message(interaction.guild.id)
 
 
+class StopButton(discord.ui.Button):
+    def __init__(self, voice, storage):
+        self.voice = voice
+        self.storage = storage
+        super().__init__(
+            emoji=PlayerEmojis.STOP_EMOJI,
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"{voice.guild.id}:stop",
+            row=0
+        )
+
+    async def callback(self, interaction):
+        self.voice = interaction.guild.voice_client
+
+        self.storage.delete_queue(self.voice.guild.id)
+        self.voice.stop()
+
+
 class VolumeDownButton(discord.ui.Button):
     def __init__(self, voice, storage):
         self.voice = voice
@@ -89,7 +111,8 @@ class VolumeDownButton(discord.ui.Button):
         super().__init__(
             emoji=PlayerEmojis.VOL_DOWN_EMOJI,
             style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:volume_down"
+            custom_id=f"{voice.guild.id}:volume_down",
+            row=1
         )
 
     async def callback(self, interaction):
@@ -117,7 +140,8 @@ class VolumeUpButton(discord.ui.Button):
         super().__init__(
             emoji=PlayerEmojis.VOL_UP_EMOJI,
             style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:volume_up"
+            custom_id=f"{voice.guild.id}:volume_up",
+            row=1
         )
 
     async def callback(self, interaction):
@@ -136,19 +160,3 @@ class VolumeUpButton(discord.ui.Button):
         await self.storage.update_message(interaction.guild.id)
         self.storage.client.change_volume(interaction.guild.id, volume_level)
 
-
-class StopButton(discord.ui.Button):
-    def __init__(self, voice, storage):
-        self.voice = voice
-        self.storage = storage
-        super().__init__(
-            emoji=PlayerEmojis.STOP_EMOJI,
-            style=discord.ButtonStyle.secondary,
-            custom_id=f"{voice.guild.id}:stop"
-        )
-
-    async def callback(self, interaction):
-        self.voice = interaction.guild.voice_client
-
-        self.storage.delete_queue(self.voice.guild.id)
-        self.voice.stop()
