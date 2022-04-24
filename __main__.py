@@ -16,7 +16,7 @@ class Client(discord.Bot):
         self.cursor = None
 
     def connect_db(self):
-        db = sqlite3.connect("player.db")
+        db = sqlite3.connect("player.db", check_same_thread=False)
         cursor = db.cursor()
         cursor.execute("""CREATE TABLE IF NOT EXISTS guild (
             id BIGINT,
@@ -27,11 +27,35 @@ class Client(discord.Bot):
         self.db = db
         self.cursor = cursor
 
+    def change_volume(self, guild_id, volume):
+        self.cursor.execute(f"UPDATE guild SET volume = {volume} WHERE id = {guild_id}")
+        self.db.commit()
+
+    def change_repeat_mode(self, guild_id, repeat_mode):
+        self.cursor.execute(f"UPDATE guild SET repeatMode = {repeat_mode} WHERE id = {guild_id}")
+        self.db.commit()
+
+    def get_volume(self, guild_id):
+        cursor = self.db.cursor()
+        cursor.execute(f"SELECT volume FROM guild WHERE id = {guild_id}")
+        result = cursor.fetchone()
+        if result is not None:
+            return result[0]
+        return
+
+    def get_repeat_mode(self, guild_id):
+        cursor = self.db.cursor()
+        cursor.execute(f"SELECT repeatMode FROM guild WHERE id = {guild_id}")
+        result = cursor.fetchone()
+        if result is not None:
+            return result[0]
+        return
+
     async def on_ready(self):
         self.connect_db()
         print("-" * 50)
         print(f"We have logged in as {self.user} with ID: {self.user.id}")
-        print("-"*50)
+        print("-" * 50)
 
     async def on_guild_join(self, guild):
         self.cursor.execute(f"SELECT id FROM guild WHERE id = {guild.id}")

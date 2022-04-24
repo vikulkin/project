@@ -66,6 +66,9 @@ class MusicBot(commands.Cog):
             discord.FFmpegPCMAudio(next_track["url"],
                                    **FFMPEG_OPTIONS)
         )
+
+        source.volume = self.client.get_volume(ctx.guild.id) / 100
+
         voice.play(
             source=source, after=lambda e: self._play_next(e, ctx)
         )
@@ -83,7 +86,7 @@ class MusicBot(commands.Cog):
             source = discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(track_to_play["url"], **FFMPEG_OPTIONS)
             )
-            source.volume = .5
+            source.volume = self.client.get_volume(ctx.guild.id) / 100
 
             voice = ctx.voice_client
             voice.play(
@@ -178,8 +181,8 @@ class MusicBot(commands.Cog):
 
         embed = Embeds.music_embed(title="Volume level changed",
                                    description=f"Volume level changed to {level / 100} **({level}%)**")
-
         await ctx.respond(embed=embed)
+        self.client.change_volume(ctx.guild.id, level)
 
     @slash_command(name="repeat", description="Switch repeat mode (None -> One -> All -> None -> ...)")
     async def repeat_command(self, ctx):

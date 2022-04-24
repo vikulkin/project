@@ -10,11 +10,13 @@ from vk_parsing.utils import time_format
 
 class Queue:
     def __init__(self, guild_id, storage):
+        repeat_mode = storage.client.get_repeat_mode(guild_id)
+
         self.storage = storage
         self._guild_id = guild_id
         self._tracks = []
         self.current_index = 0
-        self._repeat_mode = RepeatModes.NONE
+        self._repeat_mode = RepeatModes(repeat_mode)
         self.player_message = None
         self.reverse_mode = False
 
@@ -30,7 +32,7 @@ class Queue:
 
     @property
     def guild_id(self):
-        return self.guild_id
+        return self._guild_id
 
     @property
     def repeat_mode(self):
@@ -92,7 +94,6 @@ class Queue:
     def get_next_track(self):
         index = self._get_next_index()
         if index is None:
-            # self._tracks.clear()
             self.storage.delete_queue(self.guild_id)
             return
         self.current_index = index
@@ -104,6 +105,9 @@ class Queue:
         if current_mode > 2:
             current_mode = 0
         self._repeat_mode = RepeatModes(current_mode)
+
+        self.storage.client.change_repeat_mode(self.guild_id, current_mode)
+
         return self._repeat_mode
 
 
